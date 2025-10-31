@@ -8,7 +8,7 @@ A React-Mosaic-style tiling window manager library for Dioxus applications.
 
 ## Demo
 
-![Demo](assets/demo.mov)
+![Demo](assets/demo.gif)
 
 ## Features
 
@@ -217,7 +217,6 @@ layout.set(MosaicLayout::from_tree(tree));
 
 - **`basic.rs`** - Simple 3-panel layout (sidebar, editor, terminal)
 - **`advanced.rs`** - Complex multi-panel layout with all features
-- **[FootData](https://github.com/benjaminbours/footdata)** - Real-world production usage
 
 Run examples:
 
@@ -271,9 +270,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 MIT - See [LICENSE](LICENSE) for details.
 
 ## Real-World Usage
-
-Used in production by:
-- **[FootData](https://github.com/benjaminbours/footdata)** - Football prediction and analysis platform
 
 *Using dioxus-mosaic in your project? Open a PR to add it here!*
 
