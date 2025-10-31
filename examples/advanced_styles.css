@@ -1,0 +1,235 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background: #1e1e1e;
+    color: #d4d4d4;
+}
+
+.app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.mosaic-container {
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel {
+    height: 100%;
+    padding: 1rem;
+    background: #1e1e1e;
+    overflow: auto;
+}
+
+.panel h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    color: #888;
+    font-weight: 600;
+}
+
+/* Header */
+.header-panel {
+    background: #252526;
+    border-bottom: 1px solid #3e3e42;
+    padding: 0;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1rem;
+}
+
+.header-content h1 {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.header-actions button {
+    background: transparent;
+    border: none;
+    color: #d4d4d4;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.header-actions button:hover {
+    background: #2a2d2e;
+}
+
+/* Files Panel */
+.files-panel {
+    background: #252526;
+    border-right: 1px solid #3e3e42;
+}
+
+.tree {
+    list-style: none;
+    font-size: 0.9rem;
+}
+
+.tree li {
+    padding: 0.4rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.tree li:hover {
+    background: #2a2d2e;
+}
+
+.tree .indent {
+    padding-left: 1.5rem;
+}
+
+.tree .indent2 {
+    padding-left: 3rem;
+}
+
+/* Outline Panel */
+.outline-panel {
+    background: #252526;
+    border-right: 1px solid #3e3e42;
+}
+
+.outline {
+    list-style: none;
+    font-size: 0.9rem;
+}
+
+.outline li {
+    padding: 0.4rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.outline li:hover {
+    background: #2a2d2e;
+}
+
+/* Editor Panel */
+.editor-panel {
+    background: #1e1e1e;
+    padding: 0;
+}
+
+.editor-tabs {
+    display: flex;
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.tab {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-right: 1px solid #3e3e42;
+}
+
+.tab:hover {
+    background: #2a2d2e;
+}
+
+.tab.active {
+    background: #1e1e1e;
+}
+
+.code {
+    padding: 1rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #d4d4d4;
+}
+
+/* Console Panel */
+.console-panel {
+    background: #1a1a1a;
+    padding: 0;
+}
+
+.console-tabs {
+    display: flex;
+    background: #252525;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.console-output {
+    padding: 1rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #00ff00;
+}
+
+/* Preview Panel */
+.preview-panel {
+    background: #2d2d30;
+}
+
+.preview-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100% - 2rem);
+}
+
+.preview-box {
+    background: #1e1e1e;
+    border: 2px dashed #3e3e42;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    color: #888;
+    max-width: 300px;
+}
+
+/* Inspector Panel */
+.inspector-panel {
+    background: #252526;
+    border-left: 1px solid #3e3e42;
+}
+
+.properties {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.property {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem;
+    background: #1e1e1e;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.property .key {
+    color: #888;
+    font-weight: 500;
+}
+
+.property .value {
+    color: #d4d4d4;
+    font-family: 'Monaco', 'Menlo', monospace;
+}

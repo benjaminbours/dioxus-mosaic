@@ -1,0 +1,33 @@
+[package]
+name = "dioxus-mosaic"
+version = "0.1.0"
+authors = ["Benjamin Bours <boursbenjamin@gmail.com>"]
+edition = "2021"
+description = "A React-Mosaic-style tiling window manager library for Dioxus applications"
+license = "MIT"
+repository = "https://github.com/benjaminbours/dioxus-mosaic"
+documentation = "https://docs.rs/dioxus-mosaic"
+keywords = ["dioxus", "tiling", "window-manager", "mosaic", "ui"]
+categories = ["gui", "web-programming"]
+readme = "README.md"
+
+[dependencies]
+dioxus = { version = "0.6.0", features = ["web"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+web-sys = { version = "0.3", features = ["Window", "Storage", "Element", "HtmlElement"] }
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+# For unit tests
+pretty_assertions = "1.4"
+# For examples
+dioxus = { version = "0.6.0" }
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+
+[[example]]
+name = "advanced"
+path = "examples/advanced.rs"
