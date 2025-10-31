@@ -2,6 +2,7 @@ use crate::drag_drop::{calculate_drop_zone, get_drop_zone_style, DragState, Drop
 use crate::layout::MosaicLayout;
 use crate::types::TileId;
 use dioxus::prelude::*;
+use dioxus::signals::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 

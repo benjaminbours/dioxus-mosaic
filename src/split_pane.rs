@@ -1,5 +1,6 @@
 use crate::types::SplitDirection;
 use dioxus::prelude::*;
+use dioxus::signals::*;
 use wasm_bindgen::JsCast;
 
 /// A resizable split pane component
