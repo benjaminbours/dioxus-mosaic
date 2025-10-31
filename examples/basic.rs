@@ -16,10 +16,37 @@ fn App() -> Element {
                     .top(tile("editor"))
                     .bottom(tile("terminal"))
                     .split(70.0)  // 70% editor, 30% terminal
-                    .build()
+                    .build_tree()
             )
             .split(25.0)  // 25% sidebar, 75% main area
             .build()
+    });
+
+    // Render functions need to be boxed and wrapped in signals
+    let render_tile = use_signal(|| {
+        Box::new(move |tile_id: String| {
+            match tile_id.as_str() {
+                "sidebar" => Some(rsx! { SidebarPanel {} }),
+                "editor" => Some(rsx! { EditorPanel {} }),
+                "terminal" => Some(rsx! { TerminalPanel {} }),
+                _ => None
+            }
+        }) as Box<dyn Fn(String) -> Option<Element>>
+    });
+
+    let render_title = use_signal(|| {
+        Box::new(move |tile_id: String| {
+            rsx! {
+                span {
+                    match tile_id.as_str() {
+                        "sidebar" => "Files",
+                        "editor" => "Editor",
+                        "terminal" => "Terminal",
+                        _ => "Unknown"
+                    }
+                }
+            }
+        }) as Box<dyn Fn(String) -> Element>
     });
 
     rsx! {
@@ -31,14 +58,8 @@ fn App() -> Element {
             div { class: "mosaic-container",
                 Mosaic {
                     layout: layout,
-                    render_tile: move |tile_id| {
-                        match tile_id.as_str() {
-                            "sidebar" => rsx! { SidebarPanel {} },
-                            "editor" => rsx! { EditorPanel {} },
-                            "terminal" => rsx! { TerminalPanel {} },
-                            _ => None
-                        }
-                    },
+                    render_tile: render_tile,
+                    render_title: render_title,
                 }
             }
         }

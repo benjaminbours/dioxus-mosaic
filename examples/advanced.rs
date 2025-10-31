@@ -23,7 +23,7 @@ fn App() -> Element {
                             .top(tile("files"))
                             .bottom(tile("outline"))
                             .split(60.0)
-                            .build()
+                            .build_tree()
                     )
                     .right(
                         // Main area: Editor + Preview + Console
@@ -34,7 +34,7 @@ fn App() -> Element {
                                     .top(tile("editor"))
                                     .bottom(tile("console"))
                                     .split(70.0)
-                                    .build()
+                                    .build_tree()
                             )
                             .right(
                                 // Preview and inspector
@@ -42,16 +42,51 @@ fn App() -> Element {
                                     .top(tile("preview"))
                                     .bottom(tile("inspector"))
                                     .split(60.0)
-                                    .build()
+                                    .build_tree()
                             )
                             .split(60.0)
-                            .build()
+                            .build_tree()
                     )
                     .split(20.0)
-                    .build()
+                    .build_tree()
             )
             .split(8.0)
             .build()
+    });
+
+    // Render functions need to be boxed and wrapped in signals
+    let render_tile = use_signal(|| {
+        Box::new(move |tile_id: String| {
+            match tile_id.as_str() {
+                "header" => Some(rsx! { HeaderPanel {} }),
+                "files" => Some(rsx! { FilesPanel {} }),
+                "outline" => Some(rsx! { OutlinePanel {} }),
+                "editor" => Some(rsx! { EditorPanel {} }),
+                "console" => Some(rsx! { ConsolePanel {} }),
+                "preview" => Some(rsx! { PreviewPanel {} }),
+                "inspector" => Some(rsx! { InspectorPanel {} }),
+                _ => None
+            }
+        }) as Box<dyn Fn(String) -> Option<Element>>
+    });
+
+    let render_title = use_signal(|| {
+        Box::new(move |tile_id: String| {
+            rsx! {
+                span {
+                    match tile_id.as_str() {
+                        "header" => "Header",
+                        "files" => "Files",
+                        "outline" => "Outline",
+                        "editor" => "Editor",
+                        "console" => "Console",
+                        "preview" => "Preview",
+                        "inspector" => "Inspector",
+                        _ => "Unknown"
+                    }
+                }
+            }
+        }) as Box<dyn Fn(String) -> Element>
     });
 
     rsx! {
@@ -61,18 +96,8 @@ fn App() -> Element {
             div { class: "mosaic-container",
                 Mosaic {
                     layout: layout,
-                    render_tile: move |tile_id| {
-                        match tile_id.as_str() {
-                            "header" => rsx! { HeaderPanel {} },
-                            "files" => rsx! { FilesPanel {} },
-                            "outline" => rsx! { OutlinePanel {} },
-                            "editor" => rsx! { EditorPanel {} },
-                            "console" => rsx! { ConsolePanel {} },
-                            "preview" => rsx! { PreviewPanel {} },
-                            "inspector" => rsx! { InspectorPanel {} },
-                            _ => None
-                        }
-                    },
+                    render_tile: render_tile,
+                    render_title: render_title,
                 }
             }
         }

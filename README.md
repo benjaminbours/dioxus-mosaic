@@ -8,14 +8,7 @@ A React-Mosaic-style tiling window manager library for Dioxus applications.
 
 ## Demo
 
-> **Note**: Add your demo video here!
-> Upload your video to `assets/demo.mp4` or `assets/demo.gif` and update this section:
->
-> ```markdown
-> ![Demo](assets/demo.gif)
-> ```
-
-See it in action in [FootData](https://github.com/benjaminbours/footdata) - a football prediction analysis tool.
+![Demo](assets/demo.mov)
 
 ## Features
 
@@ -52,38 +45,58 @@ fn App() -> Element {
                     .top(tile("editor"))
                     .bottom(tile("terminal"))
                     .split(70.0)  // 70% top, 30% bottom
-                    .build()
+                    .build_tree()  // nested builders need build_tree()
             )
             .split(25.0)  // 25% left, 75% right
             .build()
     });
 
+    let render_tile = use_signal(|| {
+        Box::new(move |tile_id: String| {
+            match tile_id.as_str() {
+                "sidebar" => Some(rsx! {
+                    div { class: "panel",
+                        h2 { "Sidebar" }
+                        p { "Navigation content here" }
+                    }
+                }),
+                "editor" => Some(rsx! {
+                    div { class: "panel",
+                        h2 { "Editor" }
+                        textarea { "Your code here..." }
+                    }
+                }),
+                "terminal" => Some(rsx! {
+                    div { class: "panel",
+                        h2 { "Terminal" }
+                        pre { "$ cargo run" }
+                    }
+                }),
+                _ => None
+            }
+        }) as Box<dyn Fn(String) -> Option<Element>>
+    });
+
+    let render_title = use_signal(|| {
+        Box::new(move |tile_id: String| {
+            rsx! {
+                span {
+                    match tile_id.as_str() {
+                        "sidebar" => "Files",
+                        "editor" => "Editor",
+                        "terminal" => "Terminal",
+                        _ => "Unknown"
+                    }
+                }
+            }
+        }) as Box<dyn Fn(String) -> Element>
+    });
+
     rsx! {
         Mosaic {
             layout: layout,
-            render_tile: move |tile_id| {
-                match tile_id.as_str() {
-                    "sidebar" => rsx! {
-                        div { class: "panel",
-                            h2 { "Sidebar" }
-                            p { "Navigation content here" }
-                        }
-                    },
-                    "editor" => rsx! {
-                        div { class: "panel",
-                            h2 { "Editor" }
-                            textarea { "Your code here..." }
-                        }
-                    },
-                    "terminal" => rsx! {
-                        div { class: "panel",
-                            h2 { "Terminal" }
-                            pre { "$ cargo run" }
-                        }
-                    },
-                    _ => None
-                }
-            },
+            render_tile: render_tile,
+            render_title: render_title,
         }
     }
 }
@@ -92,7 +105,7 @@ fn App() -> Element {
 Run the example:
 
 ```bash
-cargo run --example basic
+dx serve --example basic
 ```
 
 ## Architecture

@@ -1,0 +1,10 @@
+[application]
+name = "dioxus-mosaic"
+default_platform = "web"
+
+[web.app]
+title = "dioxus-mosaic examples"
+
+[web.watcher]
+
+[web.resource.dev]
