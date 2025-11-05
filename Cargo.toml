@@ -1,6 +1,6 @@
 [package]
 name = "dioxus-mosaic"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Benjamin Bours <boursbenjamin@gmail.com>"]
 edition = "2021"
 description = "A React-Mosaic-style tiling window manager library for Dioxus applications"
