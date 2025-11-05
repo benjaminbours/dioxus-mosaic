@@ -2,7 +2,6 @@ use crate::drag_drop::{calculate_drop_zone, get_drop_zone_style, DragState, Drop
 use crate::layout::MosaicLayout;
 use crate::types::TileId;
 use dioxus::prelude::*;
-use dioxus::signals::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 
@@ -35,12 +34,6 @@ pub fn TilePane(
 
     // Check if drag is active and this tile is being hovered
     let is_drag_active = drag_state.read().is_dragging();
-    let hover_target_tile = drag_state
-        .read()
-        .hover_target
-        .as_ref()
-        .map(|(tid, _)| tid.clone());
-    let is_hovered = hover_target_tile.as_ref() == Some(&tile_id);
     // Pre-calculate opacity for dragged tile
     let tile_opacity = if is_being_dragged { "0.4" } else { "1.0" };
 
