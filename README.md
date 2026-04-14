@@ -12,12 +12,12 @@ A React-Mosaic-style tiling window manager library for Dioxus applications.
 
 ## Features
 
-- ⚡ **HashMap-based architecture** - O(1) operations for smooth 60 FPS performance
+- ⚡ **HashMap-based architecture** - O(1) lookups for smooth 60 FPS performance
 - 📐 **Binary splits** - Simple, proven pattern (like VSCode, Sublime)
 - 🎯 **Resizable dividers** - Drag to resize panes smoothly
 - ✂️ **Dynamic splitting** - Split any tile horizontally or vertically
 - 🎮 **Panel controls** - Close tiles, collapse/expand
-- 💾 **LocalStorage persistence** - Layout survives page reloads
+- 💾 **Serializable layout** - Save/restore via serde (e.g. LocalStorage)
 - 🏗️ **Clean builder API** - Easy-to-use tree-like configuration
 - 🎨 **Drag-and-drop** - Reorder tiles by dragging
 
@@ -112,15 +112,14 @@ dx serve --example basic
 
 ### Why HashMap?
 
-**Performance matters:** When you drag a divider, hundreds of events per second need O(1) lookups.
+**Performance matters:** When you drag a divider, hundreds of events per second need O(1) lookups. The layout is stored as a flat HashMap; rendering traverses the tree in O(n) to compute absolute positions, but individual tile lookups and split-percentage updates remain O(1).
 
 | Operation | Tree (React-Mosaic) | HashMap (dioxus-mosaic) |
 |-----------|---------------------|------------------------|
 | Find tile | O(n) | **O(1)** |
 | Update split % | O(n) | **O(1)** |
 | Split tile | O(n) | **O(1)** |
-
-**Result:** 100x faster for runtime operations while maintaining a clean tree-like API for developers.
+| Compute layout | O(n) | O(n) |
 
 ### Binary Splits
 
@@ -201,12 +200,12 @@ let close_panel = move |_| {
 
 ### Persistence
 
-Layout automatically persists to LocalStorage. Want custom storage?
+The layout is serializable via serde. You can persist it to LocalStorage, a backend, or any other store:
 
 ```rust
 // Save layout
 let json = serde_json::to_string(&layout.read().to_tree())?;
-// Store in your backend, file, etc.
+// Store in LocalStorage, your backend, file, etc.
 
 // Restore layout
 let tree: MosaicNode = serde_json::from_str(&json)?;
@@ -215,7 +214,7 @@ layout.set(MosaicLayout::from_tree(tree));
 
 ## Examples
 
-- **`basic.rs`** - Simple 3-panel layout (sidebar, editor, terminal)
+- **`basic.rs`** - Simple 4-panel layout (sidebar, editor, interactive, terminal)
 - **`advanced.rs`** - Complex multi-panel layout with all features
 
 Run examples:
@@ -231,11 +230,11 @@ dx serve --example advanced
 ## Features Roadmap
 
 ### v0.1.0 (Current) ✅
-- [x] HashMap-based layout with O(1) operations
+- [x] HashMap-based layout with O(1) lookups
 - [x] Binary splits (horizontal/vertical)
 - [x] Resizable dividers
 - [x] Dynamic splitting and closing
-- [x] LocalStorage persistence
+- [x] Serializable layout (serde)
 - [x] Drag-and-drop tile reordering
 - [x] Clean builder API
 
@@ -254,7 +253,8 @@ dx serve --example advanced
 
 Optimized for real-time interaction:
 - **< 16ms** frame time (60 FPS) even during drag operations
-- **O(1)** HashMap lookups for all runtime operations
+- **O(1)** HashMap lookups for tile access and split updates
+- **O(n)** layout pass to compute absolute tile positions
 - **Zero-cost** abstractions with Rust
 
 ## API Documentation

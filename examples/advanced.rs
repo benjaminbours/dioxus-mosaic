@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use dioxus_mosaic::{Mosaic, MosaicBuilder, tile};
+use dioxus_mosaic::{tile, Mosaic, MosaicBuilder};
 
 fn main() {
     dioxus::launch(App);
@@ -12,7 +12,7 @@ fn App() -> Element {
         MosaicBuilder::vertical()
             .top(
                 // Top section: Header
-                tile("header")
+                tile("header"),
             )
             .bottom(
                 // Main section: Sidebar | (Editor + Preview) | Inspector
@@ -23,7 +23,7 @@ fn App() -> Element {
                             .top(tile("files"))
                             .bottom(tile("outline"))
                             .split(60.0)
-                            .build_tree()
+                            .build_tree(),
                     )
                     .right(
                         // Main area: Editor + Preview + Console
@@ -34,7 +34,7 @@ fn App() -> Element {
                                     .top(tile("editor"))
                                     .bottom(tile("console"))
                                     .split(70.0)
-                                    .build_tree()
+                                    .build_tree(),
                             )
                             .right(
                                 // Preview and inspector
@@ -42,13 +42,13 @@ fn App() -> Element {
                                     .top(tile("preview"))
                                     .bottom(tile("inspector"))
                                     .split(60.0)
-                                    .build_tree()
+                                    .build_tree(),
                             )
                             .split(60.0)
-                            .build_tree()
+                            .build_tree(),
                     )
                     .split(20.0)
-                    .build_tree()
+                    .build_tree(),
             )
             .split(8.0)
             .build()
@@ -56,17 +56,15 @@ fn App() -> Element {
 
     // Render functions need to be boxed and wrapped in signals
     let render_tile = use_signal(|| {
-        Box::new(move |tile_id: String| {
-            match tile_id.as_str() {
-                "header" => Some(rsx! { HeaderPanel {} }),
-                "files" => Some(rsx! { FilesPanel {} }),
-                "outline" => Some(rsx! { OutlinePanel {} }),
-                "editor" => Some(rsx! { EditorPanel {} }),
-                "console" => Some(rsx! { ConsolePanel {} }),
-                "preview" => Some(rsx! { PreviewPanel {} }),
-                "inspector" => Some(rsx! { InspectorPanel {} }),
-                _ => None
-            }
+        Box::new(move |tile_id: String| match tile_id.as_str() {
+            "header" => Some(rsx! { HeaderPanel {} }),
+            "files" => Some(rsx! { FilesPanel {} }),
+            "outline" => Some(rsx! { OutlinePanel {} }),
+            "editor" => Some(rsx! { EditorPanel {} }),
+            "console" => Some(rsx! { ConsolePanel {} }),
+            "preview" => Some(rsx! { PreviewPanel {} }),
+            "inspector" => Some(rsx! { InspectorPanel {} }),
+            _ => None,
         }) as Box<dyn Fn(String) -> Option<Element>>
     });
 

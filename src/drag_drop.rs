@@ -1,6 +1,32 @@
+use std::collections::HashMap;
+
 use crate::types::TileId;
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Default)]
+pub struct TileRefs {
+    pub refs: HashMap<TileId, MountedEvent>,
+}
+
+impl TileRefs {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn register(&mut self, tile_id: TileId, mounted: MountedEvent) {
+        self.refs.insert(tile_id, mounted);
+    }
+
+    pub fn unregister(&mut self, tile_id: &TileId) {
+        self.refs.remove(tile_id);
+    }
+}
+
+#[derive(Clone, Copy, Default, PartialEq)]
+pub struct ResizeState {
+    pub is_resizing: bool,
+}
 
 /// Drop zone position when hovering over a tile
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,17 +59,25 @@ impl DropZone {
     }
 }
 
+/// Cached bounding rect for a tile
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TileRect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
 /// Global drag state
 #[derive(Clone, Default, PartialEq)]
 pub struct DragState {
-    /// ID of the tile currently being dragged
     pub dragging_tile_id: Option<TileId>,
-
-    /// Current mouse/cursor position during drag
     pub drag_position: (f64, f64),
-
-    /// Currently hovered target tile and drop zone
     pub hover_target: Option<(TileId, DropZone)>,
+    /// Cached bounding rects for all tiles (snapshotted at drag start and refreshed periodically)
+    pub cached_rects: HashMap<TileId, TileRect>,
+    /// Whether we're currently fetching rects (to avoid concurrent fetches)
+    pub rects_fetching: bool,
 }
 
 impl DragState {
@@ -59,24 +93,53 @@ impl DragState {
         self.dragging_tile_id = Some(tile_id);
         self.drag_position = (x, y);
         self.hover_target = None;
+        self.cached_rects.clear();
+        self.rects_fetching = false;
     }
 
     pub fn update_position(&mut self, x: f64, y: f64) {
         self.drag_position = (x, y);
     }
 
-    pub fn update_hover(&mut self, tile_id: TileId, zone: DropZone) {
-        self.hover_target = Some((tile_id, zone));
-    }
+    /// Perform synchronous hit-testing using cached rects
+    pub fn update_hover_from_cache(&mut self) {
+        let (mouse_x, mouse_y) = self.drag_position;
+        let dragging_id = match &self.dragging_tile_id {
+            Some(id) => id.clone(),
+            None => return,
+        };
 
-    pub fn clear_hover(&mut self) {
-        self.hover_target = None;
+        let mut best_match: Option<(TileId, DropZone)> = None;
+
+        for (tid, rect) in &self.cached_rects {
+            if tid == &dragging_id {
+                continue;
+            }
+
+            let in_bounds = mouse_x >= rect.x
+                && mouse_x <= rect.x + rect.width
+                && mouse_y >= rect.y
+                && mouse_y <= rect.y + rect.height;
+
+            if in_bounds {
+                if let Some(zone) =
+                    calculate_drop_zone(mouse_x, mouse_y, rect.x, rect.y, rect.width, rect.height)
+                {
+                    best_match = Some((tid.clone(), zone));
+                    break;
+                }
+            }
+        }
+
+        self.hover_target = best_match;
     }
 
     pub fn end_drag(&mut self) {
         self.dragging_tile_id = None;
         self.drag_position = (0.0, 0.0);
         self.hover_target = None;
+        self.cached_rects.clear();
+        self.rects_fetching = false;
     }
 }
 
@@ -114,10 +177,7 @@ pub fn calculate_drop_zone(
 }
 
 /// Get the CSS style for a drop zone overlay
-pub fn get_drop_zone_style(
-    zone: DropZone,
-    is_active: bool,
-) -> String {
+pub fn get_drop_zone_style(zone: DropZone, is_active: bool) -> String {
     let (position_props, size_props) = match zone {
         DropZone::Top => ("top: 0; left: 0; right: 0;", "height: 30%;"),
         DropZone::Bottom => ("bottom: 0; left: 0; right: 0;", "height: 30%;"),
@@ -145,7 +205,10 @@ pub fn get_drop_zone_style(
 
 /// Drag ghost component that follows the cursor
 #[component]
-pub fn DragGhost(drag_state: Signal<DragState>, render_title: Signal<Box<dyn Fn(TileId) -> Element>>) -> Element {
+pub fn DragGhost(
+    drag_state: Signal<DragState>,
+    render_title: Signal<Box<dyn Fn(TileId) -> Element>>,
+) -> Element {
     let state = drag_state.read();
 
     // If not dragging, don't render anything

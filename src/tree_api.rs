@@ -164,11 +164,8 @@ mod tests {
 
     #[test]
     fn test_tree_to_layout_split() {
-        let tree = MosaicNode::horizontal(
-            MosaicNode::tile("tile1"),
-            MosaicNode::tile("tile2"),
-            50.0,
-        );
+        let tree =
+            MosaicNode::horizontal(MosaicNode::tile("tile1"), MosaicNode::tile("tile2"), 50.0);
         let layout = MosaicLayout::from_tree(tree);
         assert_eq!(
             layout.get_all_tiles(),
@@ -180,11 +177,7 @@ mod tests {
     fn test_tree_to_layout_nested() {
         let tree = MosaicNode::horizontal(
             MosaicNode::tile("tile1"),
-            MosaicNode::vertical(
-                MosaicNode::tile("tile2"),
-                MosaicNode::tile("tile3"),
-                60.0,
-            ),
+            MosaicNode::vertical(MosaicNode::tile("tile2"), MosaicNode::tile("tile3"), 60.0),
             40.0,
         );
         let layout = MosaicLayout::from_tree(tree);
@@ -200,11 +193,8 @@ mod tests {
 
     #[test]
     fn test_layout_to_tree() {
-        let tree = MosaicNode::horizontal(
-            MosaicNode::tile("tile1"),
-            MosaicNode::tile("tile2"),
-            50.0,
-        );
+        let tree =
+            MosaicNode::horizontal(MosaicNode::tile("tile1"), MosaicNode::tile("tile2"), 50.0);
         let layout = MosaicLayout::from_tree(tree.clone());
         let tree2 = layout.to_tree().expect("Layout should not be empty");
 

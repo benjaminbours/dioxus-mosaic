@@ -123,7 +123,10 @@ mod tests {
             .split(40.0)
             .build();
 
-        assert_eq!(layout.get_all_tiles(), vec!["a".to_string(), "b".to_string()]);
+        assert_eq!(
+            layout.get_all_tiles(),
+            vec!["a".to_string(), "b".to_string()]
+        );
     }
 
     #[test]
@@ -134,7 +137,10 @@ mod tests {
             .split(60.0)
             .build();
 
-        assert_eq!(layout.get_all_tiles(), vec!["a".to_string(), "b".to_string()]);
+        assert_eq!(
+            layout.get_all_tiles(),
+            vec!["a".to_string(), "b".to_string()]
+        );
     }
 
     #[test]

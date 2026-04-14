@@ -45,20 +45,19 @@
 
 mod builder;
 mod drag_drop;
+mod flat_layout;
 mod layout;
 mod mosaic;
 mod node;
-mod split_pane;
 mod tile_pane;
 mod tree_api;
 mod types;
 
 // Re-export public API
 pub use builder::{tile, MosaicBuilder};
-pub use drag_drop::{DragGhost, DragState, DropZone};
+pub use drag_drop::{DragGhost, DragState, DropZone, ResizeState, TileRefs};
 pub use layout::MosaicLayout;
 pub use mosaic::Mosaic;
-pub use split_pane::SplitPane;
 pub use tile_pane::TilePane;
 pub use tree_api::MosaicNode;
 pub use types::{NodeId, SplitDirection, TileId};

@@ -309,7 +309,9 @@ impl MosaicLayout {
         // Step 1: Remove dragged tile from its current position (but keep the node)
         // We need to preserve the dragged tile node and its data
         let dragged_tile_node = match self.nodes.get(&dragged_node_id).cloned() {
-            Some(Node::Tile { tile_id, locked, .. }) => Node::Tile {
+            Some(Node::Tile {
+                tile_id, locked, ..
+            }) => Node::Tile {
                 id: dragged_node_id.clone(),
                 tile_id,
                 parent: None, // Will be updated below
@@ -349,6 +351,14 @@ impl MosaicLayout {
             // Update grandparent's child pointer or root
             if let Some(gp_id) = grandparent_id {
                 self.replace_child(&gp_id, &parent_id, &sibling_id);
+                // Reset grandparent split percentage — the old value was calibrated for
+                // the previous subtree structure and no longer makes visual sense
+                if let Some(Node::Split {
+                    split_percentage, ..
+                }) = self.nodes.get_mut(&gp_id)
+                {
+                    *split_percentage = 50.0;
+                }
             } else {
                 // Parent was root, sibling becomes new root
                 self.root = Some(sibling_id);
@@ -398,7 +408,8 @@ impl MosaicLayout {
         // Update dragged tile node with new parent
         let mut updated_dragged_node = dragged_tile_node;
         updated_dragged_node.set_parent(Some(split_node_id.clone()));
-        self.nodes.insert(dragged_node_id.clone(), updated_dragged_node);
+        self.nodes
+            .insert(dragged_node_id.clone(), updated_dragged_node);
 
         // Update target tile's parent
         if let Some(target_node) = self.nodes.get_mut(&target_node_id) {
@@ -448,12 +459,22 @@ impl Default for MosaicLayout {
 }
 
 impl MosaicLayout {
-    /// Save layout to localStorage
-    ///
-    /// Serializes the layout to JSON and stores it in localStorage.
-    /// Uses the provided key for storage.
+    /// Serialize the layout to a JSON string.
+    pub fn to_json(&self) -> Result<String, String> {
+        serde_json::to_string(self).map_err(|e| e.to_string())
+    }
+
+    /// Deserialize a layout from a JSON string.
+    pub fn from_json(json: &str) -> Result<Self, String> {
+        serde_json::from_str(json).map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(feature = "web")]
+impl MosaicLayout {
+    /// Save layout to localStorage (web only).
     pub fn save_to_storage(&self, storage_key: &str) -> Result<(), String> {
-        let json = serde_json::to_string(self).map_err(|e| e.to_string())?;
+        let json = self.to_json()?;
 
         web_sys::window()
             .and_then(|w| w.local_storage().ok().flatten())
@@ -462,18 +483,15 @@ impl MosaicLayout {
             .map_err(|_| "Failed to save to localStorage".to_string())
     }
 
-    /// Load layout from localStorage
-    ///
-    /// Attempts to load and deserialize a layout from localStorage.
-    /// Returns None if the key doesn't exist or deserialization fails.
+    /// Load layout from localStorage (web only).
     pub fn load_from_storage(storage_key: &str) -> Option<Self> {
         web_sys::window()
             .and_then(|w| w.local_storage().ok().flatten())
             .and_then(|storage| storage.get_item(storage_key).ok().flatten())
-            .and_then(|json_string| serde_json::from_str::<Self>(&json_string).ok())
+            .and_then(|json_string| Self::from_json(&json_string).ok())
     }
 
-    /// Clear layout from localStorage
+    /// Clear layout from localStorage (web only).
     pub fn clear_storage(storage_key: &str) -> Result<(), String> {
         web_sys::window()
             .and_then(|w| w.local_storage().ok().flatten())
@@ -483,9 +501,34 @@ impl MosaicLayout {
     }
 }
 
+#[cfg(feature = "desktop")]
+impl MosaicLayout {
+    /// Save layout to a file (desktop only).
+    pub fn save_to_file(&self, path: &std::path::Path) -> Result<(), String> {
+        let json = self.to_json()?;
+        std::fs::write(path, json).map_err(|e| e.to_string())
+    }
+
+    /// Load layout from a file (desktop only).
+    pub fn load_from_file(path: &std::path::Path) -> Option<Self> {
+        let json = std::fs::read_to_string(path).ok()?;
+        Self::from_json(&json).ok()
+    }
+
+    /// Delete a layout file (desktop only).
+    pub fn clear_file(path: &std::path::Path) -> Result<(), String> {
+        if path.exists() {
+            std::fs::remove_file(path).map_err(|e| e.to_string())
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::builder::{tile, MosaicBuilder};
 
     #[test]
     fn test_new_layout() {
@@ -567,6 +610,292 @@ mod tests {
             assert_eq!(*split_percentage, 60.0);
         } else {
             panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_insert_tile_with_split() {
+        // Build: sidebar | (editor / terminal)
+        let mut layout = MosaicLayout::new("sidebar".to_string());
+        layout.split_tile(
+            &"sidebar".to_string(),
+            SplitDirection::Horizontal,
+            "main".to_string(),
+            25.0,
+        );
+        layout.split_tile(
+            &"main".to_string(),
+            SplitDirection::Vertical,
+            "terminal".to_string(),
+            70.0,
+        );
+
+        // Verify initial state: 3 tiles, 5 nodes (3 tiles + 2 splits)
+        let tiles = layout.get_all_tiles();
+        assert_eq!(tiles.len(), 3);
+        assert!(tiles.contains(&"sidebar".to_string()));
+        assert!(tiles.contains(&"main".to_string()));
+        assert!(tiles.contains(&"terminal".to_string()));
+        assert_eq!(layout.nodes.len(), 5);
+
+        // Drag "terminal" onto "sidebar" (drop on Right zone)
+        let success = layout.insert_tile_with_split(
+            &"terminal".to_string(),
+            &"sidebar".to_string(),
+            crate::drag_drop::DropZone::Right,
+        );
+        assert!(success);
+
+        // After: still 3 tiles but rearranged
+        let tiles_after = layout.get_all_tiles();
+        assert_eq!(
+            tiles_after.len(),
+            3,
+            "Should still have 3 tiles, got: {:?}",
+            tiles_after
+        );
+        assert!(tiles_after.contains(&"sidebar".to_string()));
+        assert!(tiles_after.contains(&"main".to_string()));
+        assert!(tiles_after.contains(&"terminal".to_string()));
+
+        // Verify tree integrity: every referenced child/parent exists
+        for (node_id, node) in &layout.nodes {
+            if let Some(parent_id) = node.parent() {
+                assert!(
+                    layout.nodes.contains_key(parent_id),
+                    "Node {} references parent {} which doesn't exist",
+                    node_id,
+                    parent_id
+                );
+            }
+            if let Node::Split { first, second, .. } = node {
+                assert!(
+                    layout.nodes.contains_key(first),
+                    "Split {} references first child {} which doesn't exist",
+                    node_id,
+                    first
+                );
+                assert!(
+                    layout.nodes.contains_key(second),
+                    "Split {} references second child {} which doesn't exist",
+                    node_id,
+                    second
+                );
+            }
+        }
+
+        // Verify root exists and is reachable
+        assert!(layout.root().is_some());
+        assert!(layout.nodes.contains_key(layout.root().unwrap()));
+    }
+
+    #[test]
+    fn test_drag_to_three_horizontal_panels() {
+        let mut layout = MosaicBuilder::horizontal()
+            .left(tile("sidebar"))
+            .right(
+                MosaicBuilder::vertical()
+                    .top(tile("editor"))
+                    .bottom(tile("terminal"))
+                    .split(70.0)
+                    .build_tree(),
+            )
+            .split(25.0)
+            .build();
+
+        assert_eq!(layout.get_all_tiles().len(), 3);
+
+        let success = layout.insert_tile_with_split(
+            &"editor".to_string(),
+            &"sidebar".to_string(),
+            crate::drag_drop::DropZone::Left,
+        );
+        assert!(success);
+
+        let tiles = layout.get_all_tiles();
+        assert_eq!(tiles.len(), 3, "Should still have 3 tiles: {:?}", tiles);
+
+        for (node_id, node) in &layout.nodes {
+            if let Some(parent_id) = node.parent() {
+                assert!(
+                    layout.nodes.contains_key(parent_id),
+                    "Node {} references parent {} which doesn't exist",
+                    node_id,
+                    parent_id
+                );
+            }
+            if let Node::Split { first, second, .. } = node {
+                assert!(
+                    layout.nodes.contains_key(first),
+                    "Split {} references first child {} which doesn't exist",
+                    node_id,
+                    first
+                );
+                assert!(
+                    layout.nodes.contains_key(second),
+                    "Split {} references second child {} which doesn't exist",
+                    node_id,
+                    second
+                );
+            }
+        }
+
+        let root_id = layout.root().unwrap().clone();
+        if let Some(Node::Split {
+            direction,
+            split_percentage,
+            ..
+        }) = layout.get_node(&root_id)
+        {
+            assert_eq!(*direction, SplitDirection::Horizontal);
+            assert_eq!(
+                *split_percentage, 50.0,
+                "Root percentage should be reset to 50% after restructuring"
+            );
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_drag_terminal_right_of_editor() {
+        let mut layout = MosaicBuilder::horizontal()
+            .left(tile("sidebar"))
+            .right(
+                MosaicBuilder::vertical()
+                    .top(tile("editor"))
+                    .bottom(tile("terminal"))
+                    .split(70.0)
+                    .build_tree(),
+            )
+            .split(25.0)
+            .build();
+
+        let success = layout.insert_tile_with_split(
+            &"terminal".to_string(),
+            &"editor".to_string(),
+            crate::drag_drop::DropZone::Right,
+        );
+        assert!(success);
+        assert_eq!(layout.get_all_tiles().len(), 3);
+
+        let root_id = layout.root().unwrap().clone();
+        if let Some(Node::Split {
+            split_percentage,
+            direction,
+            ..
+        }) = layout.get_node(&root_id)
+        {
+            assert_eq!(*direction, SplitDirection::Horizontal);
+            assert_eq!(
+                *split_percentage, 50.0,
+                "Root percentage should be reset to 50% after restructuring"
+            );
+        } else {
+            panic!("Root should be a split node");
+        }
+    }
+
+    #[test]
+    fn test_insert_tile_with_split_change_orientation() {
+        // Two tiles side by side (horizontal split at root).
+        // Drag tile1 to TOP of tile2 -> should become vertical split.
+        let mut layout = MosaicLayout::new("tile1".to_string());
+        layout.split_tile(
+            &"tile1".to_string(),
+            SplitDirection::Horizontal,
+            "tile2".to_string(),
+            50.0,
+        );
+
+        // Verify initial state
+        assert_eq!(layout.get_all_tiles().len(), 2);
+        assert_eq!(layout.nodes.len(), 3); // 2 tiles + 1 split
+
+        // Check the root is a Horizontal split
+        let root_id = layout.root().unwrap().clone();
+        if let Some(Node::Split { direction, .. }) = layout.get_node(&root_id) {
+            assert_eq!(*direction, SplitDirection::Horizontal);
+        } else {
+            panic!("Root should be a horizontal split");
+        }
+
+        // Drag tile1 to TOP of tile2 -> should create vertical layout
+        let success = layout.insert_tile_with_split(
+            &"tile1".to_string(),
+            &"tile2".to_string(),
+            crate::drag_drop::DropZone::Top,
+        );
+        assert!(success, "insert_tile_with_split should succeed");
+
+        // After: still 2 tiles
+        let tiles_after = layout.get_all_tiles();
+        assert_eq!(
+            tiles_after.len(),
+            2,
+            "Should still have 2 tiles, got: {:?}",
+            tiles_after
+        );
+        assert!(tiles_after.contains(&"tile1".to_string()));
+        assert!(tiles_after.contains(&"tile2".to_string()));
+
+        // Should now be 3 nodes: 2 tiles + 1 split
+        assert_eq!(
+            layout.nodes.len(),
+            3,
+            "Should have 3 nodes (2 tiles + 1 split), got {}",
+            layout.nodes.len()
+        );
+
+        // Root should now be a Vertical split (Top drop zone = vertical)
+        let new_root_id = layout.root().unwrap().clone();
+        if let Some(Node::Split {
+            direction,
+            first,
+            second,
+            ..
+        }) = layout.get_node(&new_root_id)
+        {
+            assert_eq!(
+                *direction,
+                SplitDirection::Vertical,
+                "Root should be vertical after dropping on Top zone"
+            );
+            // tile1 was dropped on Top, so it should be first
+            // Verify both children exist
+            assert!(layout.get_node(first).is_some(), "First child should exist");
+            assert!(
+                layout.get_node(second).is_some(),
+                "Second child should exist"
+            );
+        } else {
+            panic!("Root should be a vertical split");
+        }
+
+        // Verify tree integrity
+        for (node_id, node) in &layout.nodes {
+            if let Some(parent_id) = node.parent() {
+                assert!(
+                    layout.nodes.contains_key(parent_id),
+                    "Node {} references parent {} which doesn't exist",
+                    node_id,
+                    parent_id
+                );
+            }
+            if let Node::Split { first, second, .. } = node {
+                assert!(
+                    layout.nodes.contains_key(first),
+                    "Split {} references first child {} which doesn't exist",
+                    node_id,
+                    first
+                );
+                assert!(
+                    layout.nodes.contains_key(second),
+                    "Split {} references second child {} which doesn't exist",
+                    node_id,
+                    second
+                );
+            }
         }
     }
 }

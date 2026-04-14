@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use dioxus_mosaic::{Mosaic, MosaicBuilder, tile};
+use dioxus_mosaic::{tile, Mosaic, MosaicBuilder};
 
 fn main() {
     dioxus::launch(App);
@@ -13,24 +13,29 @@ fn App() -> Element {
             .left(tile("sidebar"))
             .right(
                 MosaicBuilder::vertical()
-                    .top(tile("editor"))
+                    .top(
+                        MosaicBuilder::horizontal()
+                            .left(tile("editor"))
+                            .right(tile("interactive"))
+                            .split(66.)
+                            .build_tree(),
+                    )
                     .bottom(tile("terminal"))
-                    .split(70.0)  // 70% editor, 30% terminal
-                    .build_tree()
+                    .split(70.0) // 70% editor, 30% terminal
+                    .build_tree(),
             )
-            .split(25.0)  // 25% sidebar, 75% main area
+            .split(25.0) // 25% sidebar, 75% main area
             .build()
     });
 
     // Render functions need to be boxed and wrapped in signals
     let render_tile = use_signal(|| {
-        Box::new(move |tile_id: String| {
-            match tile_id.as_str() {
-                "sidebar" => Some(rsx! { SidebarPanel {} }),
-                "editor" => Some(rsx! { EditorPanel {} }),
-                "terminal" => Some(rsx! { TerminalPanel {} }),
-                _ => None
-            }
+        Box::new(move |tile_id: String| match tile_id.as_str() {
+            "sidebar" => Some(rsx! { SidebarPanel {} }),
+            "editor" => Some(rsx! { EditorPanel {} }),
+            "terminal" => Some(rsx! { TerminalPanel {} }),
+            "interactive" => Some(rsx! { InteractivePanel {} }),
+            _ => None,
         }) as Box<dyn Fn(String) -> Option<Element>>
     });
 
@@ -42,6 +47,7 @@ fn App() -> Element {
                         "sidebar" => "Files",
                         "editor" => "Editor",
                         "terminal" => "Terminal",
+                        "interactive" => "Interactive",
                         _ => "Unknown"
                     }
                 }
@@ -62,6 +68,21 @@ fn App() -> Element {
                     render_title: render_title,
                 }
             }
+        }
+    }
+}
+
+#[component]
+fn InteractivePanel() -> Element {
+    let mut count = use_signal(|| 0u32);
+    rsx! {
+        p {
+            "Counter: "
+            strong { "{count}" }
+        }
+        button {
+            onclick: move |_| count += 1,
+            "Increment"
         }
     }
 }
